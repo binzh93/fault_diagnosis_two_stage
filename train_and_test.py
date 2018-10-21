@@ -7,7 +7,7 @@ from sklearn.decomposition import PCA
 # from xgboost.sklearn import XGBClassifier
 from data_preprocess import *
 from sklearn.linear_model import LogisticRegression
-from sdae_test import *
+# from sdae_test import *
 from two_stage_sdae import *
 import argparse
 
