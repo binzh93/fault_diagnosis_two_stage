@@ -10,7 +10,7 @@
 6. pywt
 
 # train and test
-1. cd <your path>
+1. cd "your path"
 2. add fault data to fault_data dir
 3. sh run.sh
 
