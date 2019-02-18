@@ -20,6 +20,14 @@ Created on Sat Jun 25 13:32:26 2016
 import pywt
 import numpy as np
 
+'''
+
+import pywt
+>>> pywt.families()
+['haar', 'db', 'sym', 'coif', 'bior', 'rbio', 'dmey', 'gaus', 'mexh', 'morl', 'cgau', 'shan', 'fbsp', 'cmor']
+>>> pywt.families(short=False)
+['Haar', 'Daubechies', 'Symlets', 'Coiflets', 'Biorthogonal', 'Reverse biorthogonal', 'Discrete Meyer (FIR Approximation)', 'Gaussian', 'Mexican hat wavelet', 'Morlet wavelet', 'Complex Gaussian wavelets', 'Shannon wavelets', 'Frequency B-Spline wavelets', 'Complex Morlet wavelets']
+''' 
 
 class Wavelet_analyze(object):
     def __init__(self, org_sound=[], fs=0):
@@ -36,8 +44,8 @@ class Wavelet_analyze(object):
     """
     wavelet_tree 小波包分解
     """
-
-    def wavelet_tree(self, wavelet='db1', analyze_level=7):
+    
+    def wavelet_tree(self, wavelet='sym5', analyze_level=4):
         sound = self.org_sound
         # 进行小波包分解
         wp = pywt.WaveletPacket(data=sound, wavelet=wavelet, mode='sym')
@@ -198,3 +206,5 @@ class Wavelet_analyze(object):
         sig_power_distance_vector = sig_power_distance_group / np.sum(sig_power_distance_group)
         self.sig_power_distance_vector = sig_power_distance_vector
         return sig_power_distance_vector
+
+    

@@ -3,11 +3,12 @@ import numpy as np
 import time
 from sklearn.svm import SVC
 from sklearn import metrics, preprocessing
-from sklearn.decomposition import PCA
+# from sklearn.decomposition import PCA
 # from xgboost.sklearn import XGBClassifier
-from data_preprocess import *
+# from data_preprocess import *
+from data_pro_castle import *
 from sklearn.linear_model import LogisticRegression
-from sdae_test import *
+# from sdae_test import *
 from two_stage_sdae import *
 import argparse
 
@@ -131,6 +132,133 @@ testDataS = pca.transform(testData)
 
 '''
 
+########################################
+
+def train_and_test(train_X, train_Y, val_X, val_Y, test_X, test_Y, isTraining=True, isCastle=True):
+    
+    # get fft feature
+    train_fft_X, val_fft_X, test_fft_X = get_fft_feature(train_X, 
+                                                val_X, 
+                                                test_X, 
+                                                isHalf=True, 
+                                                isPostive=True)
+    if isCastle:
+        fs = 12000
+        nclass = 10
+    else:
+        fs = 50000
+        nclass = 4
+
+    # get wp feature
+    train_wp_X, val_wp_X, test_wp_X = get_wavelet_packet_decomposition_feature(train_X, val_X, test_X, fs=fs)
+    
+#     sdae =  Stacked_Denoising_AutoEncoder(train_X=train_X,
+#                                                 train_Y=train_Y, 
+#                                                 val_X=val_X,
+#                                                 val_Y=val_Y,
+#                                                 test_X=test_X,
+#                                                 test_Y=test_Y,
+#                                                 inside_epochs=30, 
+#                                                 inside_batch_size=128, 
+#                                                 outside_epochs=150, 
+#                                                 outside_train_batch_size=100,
+#                                                 outside_test_batch_size=1,
+#                                                 inside_learning_rate=0.1, 
+#                                                 learning_rate=0.005, 
+#                                                 layer_list=[300, 300, 100, 10], 
+#                                                 # layer_list=[400, 200, 50, 10], 
+#                                                 nclass=10, 
+#                                                 isCastle=isCastle,
+#                                                 moving_decay=0.99)
+    
+    two_stage =  Stacked_Denoising_AutoEncoder_Two_Stage(train_X_up=train_fft_X,
+                                                        train_X_down=train_wp_X,
+                                                        train_Y=train_Y, 
+                                                        val_X_up=val_fft_X,
+                                                        val_X_down=val_wp_X,
+                                                        val_Y=val_Y,
+                                                        test_X_up=test_fft_X,
+                                                        test_X_down=test_wp_X,
+                                                        test_Y=test_Y,
+                                                        inside_epochs=30, 
+                                                        inside_batch_size=128, 
+                                                        outside_epochs=50, 
+                                                        outside_train_batch_size=100,
+                                                        outside_test_batch_size=1,
+                                                        inside_learning_rate=0.1, 
+                                                        learning_rate=0.005, # 0.001   # A: 0.005
+#                                                         layer_list_up=[400, 300, 300], 
+#                                                         layer_list_down=[300, 300, 300],
+#                                                         layer_list_up=[600, 400, 200, 100], # AAAAA
+#                                                         layer_list_down=[300, 300, 200, 100],
+                                                        layer_list_up=[800, 600, 300, 100],   ### BBBB
+                                                        layer_list_down=[300, 300, 200, 100],
+                                                        nclass=nclass, 
+                                                        isCastle=isCastle,
+                                                        moving_decay=0.99)
+    if isTraining:
+        two_stage.train()
+    else:
+        two_stage.test("model/model.ckpt-12")
+        
+
+def date_prepare(save_dir, isCastle=True):
+    if isCastle:
+        raw_data_path_dir = 'castle_data'
+        # step1 : mat file to npy array 
+        all_data, label, sparse_label = raw_data_make(raw_data_path_dir)
+    else:
+        all_data = np.load("jiangnan_data/all_data.npy")
+        sparse_label = np.load("jiangnan_data/label.npy")
+    # step2: get shuffile array and corresponding label 
+    feature_shuffle, sparse_label_shuffle = get_shuffle_feature_and_laebl(all_data, sparse_label) 
+    # step3: split array to train,val,test array and label
+    train_X, train_Y, val_X, val_Y, test_X, test_Y = split_train_val_test(feature_shuffle, 
+                                                                        sparse_label_shuffle, 
+                                                                        split_rate=(0.6, 0.2, 0.2))
+    # step4: generate temp npy file
+    generate_npy_file(train_X, train_Y, val_X, val_Y, test_X, test_Y, save_dir)
+    print(train_X.shape)
+    print(train_Y.shape)
+    print(val_X.shape)
+    print(val_Y.shape)
+    print(test_X.shape)
+    print(test_Y.shape)
+
+    return train_X, train_Y, val_X, val_Y, test_X, test_Y
+
+
+if __name__ == "__main__":
+    save_dir = "../npy_file"
+
+    isCastle=True
+    isTraining = False
+    isTraining = True
+#     isCastle=False
+
+    if isCastle:
+        from data_pro_castle import *
+        save_dir = "../npy_file"
+    else:
+        from data_pro_jiangnan import *
+        save_dir = "npy_file"
+
+    if isTraining:
+        train_X, train_Y, val_X, val_Y, test_X, test_Y = date_prepare(save_dir, isCastle=isCastle)
+    else:
+        npy_dir = "npy_file"
+        train_X, train_Y, val_X, val_Y, test_X, test_Y = load_npy_file(npy_dir)
+    
+    
+
+    train_and_test(train_X, train_Y, val_X, val_Y, test_X, test_Y, isTraining=isTraining, isCastle=isCastle)
+
+###########################################
+
+
+'''
+
+
 
 def two_stage_test(data_dir):
     all_data, label, sparse_label = raw_data_make(data_dir)
@@ -173,7 +301,8 @@ def two_stage_test(data_dir):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="command for training two stage sdae neural network")
-    parser.add_argument('--data_dir', type=str, default='/workspace/mnt/group/face-reg/zhubin/fault_diagnosis/fault_data', help='input data dir')
+#     parser.add_argument('--data_dir', type=str, default='/workspace/mnt/group/face-reg/zhubin/fault_diagnosis/fault_data', help='input data dir')
+    parser.add_argument('--data_dir', type=str, default='/workspace/mnt/group/face/zhubin/alg_code/fault_diagnosis/fault_data', help='input data dir')
     args = parser.parse_args()
 
     # algorithom_compare_by_original_singal()
@@ -182,3 +311,4 @@ if __name__ == "__main__":
 
     
     
+'''
